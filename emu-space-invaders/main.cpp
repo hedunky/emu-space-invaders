@@ -8,6 +8,7 @@
 Links: 
 http://emulator101.com/
 http://patpend.net/articles/ar/aev021.txt
+http://computerarcheology.com/Arcade/SpaceInvaders/Code.html
 */
 
 uint16 ReadFileIntoMemory(uint8 *memory, char *filename, uint16 offset) {
@@ -29,7 +30,7 @@ uint16 ReadFileIntoMemory(uint8 *memory, char *filename, uint16 offset) {
 
 int main() {
     State8080 state = {};
-    state.memory = (uint8 *)malloc(0x2000); // 8192 KB
+    state.memory = (uint8 *)malloc(0x2000); // 8192 B
 
     uint16 offset = 0;
     char *files[4] = {"game/invaders.h", "game/invaders.g", "game/invaders.f", "game/invaders.e"};
@@ -41,5 +42,6 @@ int main() {
     while (!done) {
         done = Emulate8080Operation(&state);
     }
+	system("pause");
     return 0;
 }
