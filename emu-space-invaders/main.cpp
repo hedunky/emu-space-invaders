@@ -30,7 +30,7 @@ uint16 ReadFileIntoMemory(uint8 *memory, char *filename, uint16 offset) {
 
 int main() {
     State8080 state = {};
-    state.memory = (uint8 *)malloc(0x2000); // 8192 B
+    state.memory = (uint8 *)malloc(0x10000); // 65KB
 
     uint16 offset = 0;
     char *files[4] = {"game/invaders.h", "game/invaders.g", "game/invaders.f", "game/invaders.e"};
