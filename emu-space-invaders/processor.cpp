@@ -38,6 +38,18 @@ void printOperation(char *instruction) {
 	//printf("%s\n", instruction);
 }
 
+void LogicFlagsA(State8080 *state) {
+	state->flags.c = state->flags.ac = 0;
+	state->flags.z = (state->a == 0);
+	state->flags.s = isNegative(state->a);
+	state->flags.p = parity(state->a, 8);
+}
+
+uint16 memoryAddress(uint8 *opcode) {
+	uint16 result = (opcode[2] << 8) | opcode[1];
+	return result;
+}
+
 uint8 Emulate8080Operation(State8080 *state) {
     uint8 *opcode = &state->memory[state->pc];
     switch (*opcode) {
@@ -96,6 +108,15 @@ uint8 Emulate8080Operation(State8080 *state) {
 			printOperation("MVI C, D8");
 			state->c = opcode[1];
 			state->pc += 2;
+		} break;
+
+		case 0x0f: {
+			printOperation("RRC");
+			uint8 x = state->a;
+			bool firstBit = x & 1;
+			state->a = (firstBit << 7) | (x >> 1);
+			state->flags.c = firstBit;
+			state->pc++;
 		} break;
 
 		case 0x11: {
@@ -166,7 +187,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 
 		case 0x31: {
 			printOperation("LXI SP, D16");
-			state->sp = (opcode[2] << 8) | opcode[1];
+			state->sp = memoryAddress(opcode);
 			state->pc += 3;
 		} break;
 
@@ -177,10 +198,17 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->pc += 2;
 		} break;
 
+		case 0x3a: {
+			printOperation("LDA addr");
+			uint16 offset = memoryAddress(opcode);
+			state->a = state->memory[offset];
+			state->pc += 3;
+		} break;
+
 		case 0x56: {
 			printOperation("MOV D, M");
 			operationMovFromMemory(&state->d, state);
-		}
+		} break;
 
 		case 0x5e: {
 			printOperation("MOV E, M");
@@ -209,6 +237,11 @@ uint8 Emulate8080Operation(State8080 *state) {
 			operationMov(&state->a, &state->d, state);
 		} break;
 
+		case 0x7b: {
+			printOperation("MOV A, E");
+			operationMov(&state->a, &state->e, state);
+		} break;
+
 		case 0x7c: {
 			printOperation("MOV A, H");
 			operationMov(&state->a, &state->h, state);
@@ -230,7 +263,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 		case 0xc2: {
 			printOperation("JNZ addr");
 			if (state->flags.z == 0) {
-				state->pc = (opcode[2] << 8) | opcode[1];
+				state->pc = memoryAddress(opcode);
 			} else {
 				state->pc += 3;
 			}
@@ -238,7 +271,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 
 		case 0xc3: {
 			printOperation("JMP addr");
-			state->pc = (opcode[2] << 8) | opcode[1];
+			state->pc = memoryAddress(opcode);
 		} break;
 
 		case 0xc5: {
@@ -247,6 +280,18 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->memory[state->sp - 2] = state->c;
 			state->sp -= 2;
 			state->pc++;
+		} break;
+
+		case 0xc6: {
+			printOperation("ADI D8");
+			uint16 result = (uint16)state->a + (uint16)opcode[1];
+			uint8 result8Bit = result & 0xff;
+			state->flags.z = (result8Bit == 0);
+			state->flags.c = isNegative(result8Bit);
+			state->flags.p = parity(result8Bit, 8);
+			state->flags.c = result > 0xff;
+			state->a = result8Bit;
+			state->pc += 2;
 		} break;
 
 		case 0xc9: {
@@ -261,7 +306,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->memory[state->sp - 1] = (ret >> 8) & (0xff);
 			state->memory[state->sp - 2] = ret & 0xff;
 			state->sp = state->sp - 2;
-			state->pc = (opcode[2] << 8) | opcode[1];
+			state->pc = memoryAddress(opcode);
 		} break;
 
 		case 0xd1: {
@@ -302,6 +347,13 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->pc++;
 		} break;
 
+		case 0xe6: {
+			printOperation("ANI D8");
+			state->a &= opcode[1];
+			LogicFlagsA(state);
+			state->pc += 2;
+		} break;
+
 		case 0xeb: {
 			printOperation("XCHG");
 			uint8 origD = state->d;
@@ -310,6 +362,21 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->e = state->l;
 			state->h = origD;
 			state->l = origE;
+			state->pc++;
+		} break;
+
+		case 0xf1: {
+			printOperation("POP PSW");
+			state->a = state->memory[state->sp + 1];
+			uint8 psw = state->memory[state->sp];
+
+			state->flags.z = (0x01 == (psw & 0x01));
+			state->flags.s = (0x02 == (psw & 0x02));
+			state->flags.p = (0x04 == (psw & 0x04));
+			state->flags.c = (0x08 == (psw & 0x08));
+			state->flags.ac = (0x10 == (psw & 0x10));
+			state->sp += 2;
+
 			state->pc++;
 		} break;
 
