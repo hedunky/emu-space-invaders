@@ -193,6 +193,13 @@ uint8 Emulate8080Operation(State8080 *state) {
 			state->pc += 3;
 		} break;
 
+		case 0x32: {
+			printOperation("STA addr");
+			uint16 offset = memoryAddress(opcode);
+			state->memory[offset] = state->a;
+			state->pc += 3;
+		} break;
+
 		case 0x36: {
 			printOperation("MVI M, D8");
 			uint16 offset = (state->h << 8) | state->l;
@@ -257,6 +264,20 @@ uint8 Emulate8080Operation(State8080 *state) {
 		case 0x7e: {
 			printOperation("MOV A, M");
 			operationMovFromMemory(&state->a, state);
+		} break;
+
+		case 0xa7: {
+			printOperation("ANA A");
+			state->a &= state->a;
+			LogicFlagsA(state);
+			state->pc++;
+		} break;
+
+		case 0xaf: {
+			printOperation("XRA A");
+			state->a ^= state->a;
+			LogicFlagsA(state);
+			state->pc++;
 		} break;
 
 		case 0xc1: {
@@ -397,6 +418,12 @@ uint8 Emulate8080Operation(State8080 *state) {
 				state->flags.ac << 4);
 			state->memory[state->sp - 2] = psw;
 			state->sp = state->sp - 2;
+			state->pc++;
+		} break;
+
+		case 0xfb: {
+			printOperation("EI");
+			state->interrupt_enable = 1;
 			state->pc++;
 		} break;
 
