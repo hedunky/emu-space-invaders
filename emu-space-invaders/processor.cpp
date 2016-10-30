@@ -34,7 +34,7 @@ void operationMovFromMemory(uint8 *reg, State8080 *state) {
 	state->pc++;
 }
 
-bool isNegative(uint8 x) {
+bool isMSBSet(uint8 x) {
 	bool result = ((0x80) == (x & 0x80));
 	return result;
 }
@@ -46,7 +46,7 @@ void printOperation(char *instruction) {
 void LogicFlagsA(State8080 *state) {
 	state->flags.c = state->flags.ac = 0;
 	state->flags.z = (state->a == 0);
-	state->flags.s = isNegative(state->a);
+	state->flags.s = isMSBSet(state->a);
 	state->flags.p = parity(state->a, 8);
 }
 
@@ -74,7 +74,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 			printOperation("DCR B");
 			uint8 res = state->b - 1;
 			state->flags.z = (res == 0);
-			state->flags.s = isNegative(res);
+			state->flags.s = isMSBSet(res);
 			state->flags.p = parity(res, 8);
 
 			state->b = res;
@@ -101,7 +101,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 			printOperation("DCR C");
 			uint8 res = state->c - 1;
 			state->flags.z = (res == 0);
-			state->flags.s = isNegative(res);
+			state->flags.s = isMSBSet(res);
 			state->flags.p = parity(res, 8);
 
 			state->c = res;
@@ -315,7 +315,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 			uint16 result = (uint16)state->a + (uint16)opcode[1];
 			uint8 result8Bit = result & 0xff;
 			state->flags.z = (result8Bit == 0);
-			state->flags.c = isNegative(result8Bit);
+			state->flags.c = isMSBSet(result8Bit);
 			state->flags.p = parity(result8Bit, 8);
 			state->flags.c = result > 0xff;
 			state->a = result8Bit;
@@ -431,7 +431,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 			printOperation("CPI D8");
 			uint8 x = state->a - opcode[1];
 			state->flags.z = (x == 0);
-			state->flags.s = isNegative(x);
+			state->flags.s = isMSBSet(x);
 			state->flags.p = parity(x, 8);
 			state->flags.c = (state->a < opcode[1]);
 			state->pc += 2;
@@ -442,5 +442,6 @@ uint8 Emulate8080Operation(State8080 *state) {
 			return 1;
 		} break;
     }
+
     return 0;
 }

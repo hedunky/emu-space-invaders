@@ -3,7 +3,7 @@
 #include "platform.h"
 
 typedef struct Flags8080 {
-    uint8 s:1; // Sign (set if the result is negative)
+    uint8 s:1; // Sign (set if bit 7 of the math instruction is set)
     uint8 z:1; // Zero (set if the result is zero)
     uint8 p:1; // Parity (set if the number of 1 bits in the result is even)
     uint8 c:1; /* Carry (set if the last addition operation resulted in a carry,
