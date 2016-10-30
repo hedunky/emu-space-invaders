@@ -18,6 +18,11 @@ int parity(int x, int size) {
 	return (0 == (p & 0x1));
 }
 
+void operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state) {
+	*to = value;
+	state->pc += 2;
+}
+
 void operationMov(uint8 *to, uint8 *from, State8080 *state) {
 	*to = *from;
 	state->pc++;
@@ -78,8 +83,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 
 		case 0x06: {
 			printOperation("MVI B, D8");
-			state->b = opcode[1];
-			state->pc += 2;
+			operationMovValueToRegister(&state->b, opcode[1], state);
 		} break;
 
 		case 0x09: {
@@ -106,8 +110,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 
 		case 0x0e: {
 			printOperation("MVI C, D8");
-			state->c = opcode[1];
-			state->pc += 2;
+			operationMovValueToRegister(&state->c, opcode[1], state);
 		} break;
 
 		case 0x0f: {
@@ -171,8 +174,7 @@ uint8 Emulate8080Operation(State8080 *state) {
 
 		case 0x26: {
 			printOperation("MVI H, D8");
-			state->h = opcode[1];
-			state->pc += 2;
+			operationMovValueToRegister(&state->h, opcode[1], state);
 		} break;
 
 		case 0x29: {
@@ -203,6 +205,11 @@ uint8 Emulate8080Operation(State8080 *state) {
 			uint16 offset = memoryAddress(opcode);
 			state->a = state->memory[offset];
 			state->pc += 3;
+		} break;
+
+		case 0x3e: {
+			printOperation("MVI A, D8");
+			operationMovValueToRegister(&state->a, opcode[1], state);
 		} break;
 
 		case 0x56: {
