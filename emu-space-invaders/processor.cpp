@@ -55,7 +55,7 @@ uint16 memoryAddress(uint8 *opcode) {
 	return result;
 }
 
-uint8 Emulate8080Operation(State8080 *state) {
+bool Emulate8080Operation(State8080 *state) {
     uint8 *opcode = &state->memory[state->pc];
     switch (*opcode) {
 		case 0x00: {

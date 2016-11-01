@@ -31,4 +31,4 @@ typedef struct State8080 {
     uint8 interrupt_enable;
 } State8080;
 
-uint8 Emulate8080Operation(State8080 *state);
+bool Emulate8080Operation(State8080 *state);
