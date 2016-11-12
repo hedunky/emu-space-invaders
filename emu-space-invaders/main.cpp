@@ -67,11 +67,18 @@ void initWindow() {
 	}
 }
 
+void setPixel(SDL_Surface *surface, int x, int y, uint32 pixel) {
+	uint32 *target_pixel = (uint32 *)((uint8 *)surface->pixels + y * surface->pitch +
+		x * sizeof *target_pixel);
+	*target_pixel = pixel;
+}
+
 void mainLoop() {
 	bool quit = false;
 	SDL_Event e;
 
 	State8080 *state = initState();
+	uint32 lastTick = SDL_GetTicks();
 
 	while (!quit) {
 		while (SDL_PollEvent(&e) != 0) {
@@ -83,13 +90,32 @@ void mainLoop() {
 		if (!quit) {
 			quit = Emulate8080Operation(state);
 
-			void *framebuffer = (void*)state->memory[0x2400];
-			SDL_Surface *newSurface = SDL_CreateRGBSurfaceFrom(framebuffer,
-				SCREEN_WIDTH, SCREEN_HEIGHT,
-				1, 1,
-				0x0000FF, 0x00FF00, 0xFF0000, 0);
-			
+			uint32 currentTick = SDL_GetTicks();
+			if (currentTick - lastTick < 1000) {
+				continue;
+			}
+			lastTick = currentTick;
+
+			uint8 *framebuffer = state->memory + 0x2400;
+
+			SDL_Surface *surface = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0);
+
+			SDL_LockSurface(surface);
+			for (int height = 0; height < SCREEN_HEIGHT; height++) {
+				for (int width = 0; width < SCREEN_WIDTH; width+= sizeof(uint8)) {
+					uint8 pixel = *(framebuffer + sizeof(uint8) * width + sizeof(uint8) * height);
+					for (int i = 0; i < 8; i++) {
+						uint8 value = (((pixel & (1 << i)) >> i) == 1) ? 0xFF : 0;
+						uint32 result = value | (value << 8) | (value << 16);
+						setPixel(surface, width, height, result);
+					}
+				}
+			}
+
+			SDL_UnlockSurface(surface);
+			SDL_BlitSurface(surface, NULL, screenSurface, NULL);
 			SDL_UpdateWindowSurface(window);
+			SDL_FreeSurface(surface);
 		}
 	}
 }
