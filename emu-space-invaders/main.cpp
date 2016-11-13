@@ -7,8 +7,8 @@
 #include <stdio.h>
 
 //Screen dimension constants
-const int SCREEN_WIDTH = 256;
-const int SCREEN_HEIGHT = 224;
+const int SCREEN_WIDTH = 224;
+const int SCREEN_HEIGHT = 256;
 
 SDL_Window *window = NULL;
 SDL_Surface *screenSurface = NULL;
@@ -72,6 +72,17 @@ void setPixel(SDL_Surface *surface, int offset, uint32 pixel) {
 	*target_pixel = pixel;
 }
 
+int rotatedOffset(int originalOffset) {
+	int width = SCREEN_WIDTH;
+	int height = SCREEN_HEIGHT;
+	int y1 = originalOffset / height;
+	int x1 = originalOffset % height;
+	int y2 = height - 1 - x1;
+	int x2 = y1;
+	int result = y2 * width + x2;
+	return result;
+}
+
 void mainLoop() {
 	bool quit = false;
 	SDL_Event e;
@@ -96,7 +107,6 @@ void mainLoop() {
 			lastTick = currentTick;
 
 			uint8 *framebuffer = state->memory + 0x2400;
-			
 			SDL_Surface *surface = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0);
 
 			SDL_LockSurface(surface);
@@ -106,7 +116,8 @@ void mainLoop() {
 				for (int i = 0; i < bitsInByte; i++) {
 					uint8 value = (((pixels & (1 << i)) >> i) == 1) ? 0xFF : 0;
 					uint32 result = value | (value << 8) | (value << 16);
-					setPixel(surface, (byte * bitsInByte) + i, result);
+					int offset = rotatedOffset((byte * bitsInByte) + i);
+					setPixel(surface, offset, result);
 				}
 			}
 			SDL_UnlockSurface(surface);
