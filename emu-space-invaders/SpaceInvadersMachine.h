@@ -13,6 +13,8 @@ http://computerarcheology.com/Arcade/SpaceInvaders/Code.html
 class SpaceInvadersMachine {
 public:
 	SpaceInvadersMachine();
+	~SpaceInvadersMachine();
+
 	bool TicksPassed();
 
 	uint8 *Framebuffer();

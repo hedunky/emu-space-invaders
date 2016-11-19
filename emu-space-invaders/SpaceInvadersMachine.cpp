@@ -9,6 +9,11 @@ SpaceInvadersMachine::SpaceInvadersMachine() {
 	state = InitState();
 }
 
+SpaceInvadersMachine::~SpaceInvadersMachine() {
+	delete state->memory;
+	delete state;
+}
+
 bool SpaceInvadersMachine::TicksPassed() {
 	bool result = processor.EmulateOperation(state);
 	return result;
@@ -45,8 +50,8 @@ uint16 SpaceInvadersMachine::ReadFileIntoMemory(uint8 *memory, char *filename, u
 }
 
 State8080 *SpaceInvadersMachine::InitState() {
-	State8080 *state = (State8080 *)calloc(1, sizeof(State8080));
-	state->memory = (uint8 *)malloc(0x10000); // 65KB
+	State8080 *state = new State8080();
+	state->memory = new uint8[0x10000]; // 65536B
 
 	uint16 offset = 0;
 	char *files[4] = { "game/invaders.h", "game/invaders.g", "game/invaders.f", "game/invaders.e" };
