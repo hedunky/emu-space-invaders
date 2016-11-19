@@ -70,11 +70,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="processor.cpp" />
+    <ClCompile Include="Processor8080.cpp" />
+    <ClCompile Include="SpaceInvadersMachine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="platform.h" />
-    <ClInclude Include="processor.h" />
+    <ClInclude Include="Processor8080.h" />
+    <ClInclude Include="SpaceInvadersMachine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

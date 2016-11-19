@@ -1,13 +1,12 @@
+#include "Processor8080.h"
 #include <stdio.h>
-#include <Windows.h>
-#include "processor.h"
 
-void UnimplementedInstruction(State8080 *state) {
+void Processor8080::unimplementedInstruction(State8080 *state) {
 	uint8 *opcode = &state->memory[state->pc];
     printf("Error: Unimplemented instruction %0x at %0x \n", *opcode, state->pc);
 }
 
-int parity(int x, int size) {
+int Processor8080::parity(int x, int size) {
 	int i;
 	int p = 0;
 	x = (x & ((1 << size) - 1));
@@ -18,44 +17,44 @@ int parity(int x, int size) {
 	return (0 == (p & 0x1));
 }
 
-void operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state) {
+void Processor8080::operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state) {
 	*to = value;
 	state->pc += 2;
 }
 
-void operationMov(uint8 *to, uint8 *from, State8080 *state) {
+void Processor8080::operationMov(uint8 *to, uint8 *from, State8080 *state) {
 	*to = *from;
 	state->pc++;
 }
 
-void operationMovFromMemory(uint8 *reg, State8080 *state) {
+void Processor8080::operationMovFromMemory(uint8 *reg, State8080 *state) {
 	uint16_t offset = (state->h << 8) | (state->l);
 	*reg = state->memory[offset];
 	state->pc++;
 }
 
-bool isMSBSet(uint8 x) {
+bool Processor8080::isMSBSet(uint8 x) {
 	bool result = ((0x80) == (x & 0x80));
 	return result;
 }
 
-void printOperation(char *instruction) {
+void Processor8080::printOperation(char *instruction) {
 	//printf("%s\n", instruction);
 }
 
-void LogicFlagsA(State8080 *state) {
+void Processor8080::LogicFlagsA(State8080 *state) {
 	state->flags.c = state->flags.ac = 0;
 	state->flags.z = (state->a == 0);
 	state->flags.s = isMSBSet(state->a);
 	state->flags.p = parity(state->a, 8);
 }
 
-uint16 memoryAddress(uint8 *opcode) {
+uint16 Processor8080::memoryAddress(uint8 *opcode) {
 	uint16 result = (opcode[2] << 8) | opcode[1];
 	return result;
 }
 
-bool Emulate8080Operation(State8080 *state) {
+bool Processor8080::EmulateOperation(State8080 *state) {
     uint8 *opcode = &state->memory[state->pc];
     switch (*opcode) {
 		case 0x00: {
@@ -438,7 +437,7 @@ bool Emulate8080Operation(State8080 *state) {
 		} break;
 
 		default: {
-			UnimplementedInstruction(state);
+			unimplementedInstruction(state);
 			return 1;
 		} break;
     }
