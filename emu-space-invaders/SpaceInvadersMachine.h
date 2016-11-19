@@ -10,12 +10,17 @@ http://patpend.net/articles/ar/aev021.txt
 http://computerarcheology.com/Arcade/SpaceInvaders/Code.html
 */
 
+enum MachineKey{
+	MachineKeyCoin,
+};
+
 class SpaceInvadersMachine {
 public:
 	SpaceInvadersMachine();
 	~SpaceInvadersMachine();
 
 	bool TicksPassed();
+	void KeyPressed(MachineKey);
 
 	uint8 *Framebuffer();
 	uint32 GetScreenWidth();

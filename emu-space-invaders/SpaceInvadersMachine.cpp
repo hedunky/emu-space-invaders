@@ -19,6 +19,10 @@ bool SpaceInvadersMachine::TicksPassed() {
 	return result;
 }
 
+void SpaceInvadersMachine::KeyPressed(MachineKey) {
+	printf("1");
+}
+
 uint8 *SpaceInvadersMachine::Framebuffer() {
 	uint8 *result = state->memory + 0x2400;
 	return result;

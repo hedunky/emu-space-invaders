@@ -41,15 +41,24 @@ int rotatedOffset(int originalOffset, SpaceInvadersMachine *machine) {
 
 void mainLoop(SpaceInvadersMachine *machine) {
 	bool quit = false;
-	SDL_Event e;
+	SDL_Event event;
 
 	uint32 lastTick = SDL_GetTicks();
 
 	while (!quit) {
-		while (SDL_PollEvent(&e) != 0) {
-			if (e.type == SDL_QUIT) {
-				quit = true;
-				break;
+		while (SDL_PollEvent(&event) != 0) {
+			switch (event.type) {
+				case SDL_QUIT: {
+					quit = true;
+				}	break;
+
+				case SDL_KEYDOWN: {
+					switch (event.key.keysym.sym) {
+						case SDLK_TAB: {
+							machine->KeyPressed(MachineKeyCoin);
+						} break;
+					}
+				} break;
 			}
 		}
 		if (!quit) {
