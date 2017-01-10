@@ -344,12 +344,6 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc++;
 		} break;
 
-		case 0xd3: {
-			printOperation("OUT D8");
-			// TODO: OUT     (WATCHDOG),A        ; Feed watchdog
-			state->pc += 2;
-		} break;
-
 		case 0xd5: {
 			printOperation("PUSH D");
 			state->memory[state->sp - 1] = state->d;

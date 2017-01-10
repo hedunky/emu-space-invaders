@@ -34,6 +34,7 @@ typedef struct State8080 {
 class Processor8080 {
 public:
 	bool EmulateOperation(State8080 *state);
+	void printOperation(char *instruction);
 private:
 	void unimplementedInstruction(State8080 *state);
 	int parity(int x, int size);
@@ -41,7 +42,6 @@ private:
 	void operationMov(uint8 *to, uint8 *from, State8080 *state);
 	void operationMovFromMemory(uint8 *reg, State8080 *state);
 	bool isMSBSet(uint8 x);
-	void printOperation(char *instruction);
 	void LogicFlagsA(State8080 *state);
 	uint16 memoryAddress(uint8 *opcode);
 };

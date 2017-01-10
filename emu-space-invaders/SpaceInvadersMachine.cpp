@@ -15,8 +15,43 @@ SpaceInvadersMachine::~SpaceInvadersMachine() {
 }
 
 bool SpaceInvadersMachine::TicksPassed() {
-	bool result = processor.EmulateOperation(state);
-	return result;
+	uint8 *opcode = &state->memory[state->pc];
+	if (*opcode == 0xdb) {
+		// Machine specific handling for IN
+		printf("2");
+	} else if (*opcode == 0xd3) {
+		// Machine specific handling for OUT
+		processor.printOperation("OUT D8");
+
+		OutPort(opcode[1], state->a);
+		state->pc += 2;
+	} else {
+		bool result = processor.EmulateOperation(state);
+		return result;
+	}
+
+	return 0;
+}
+
+void SpaceInvadersMachine::OutPort(uint8 port, uint8 value)
+{
+	switch (port) {
+		case 3: {
+			// TODO: Play sound
+		} break;
+
+		case 5: {
+			// TODO: Play sound
+		} break;
+
+		case 6: {
+			// Watchdog port (probably used for debugging)
+		} break;
+
+		default: {
+			printf("NOT IMPLEMENTED OUT %d %d\n", port, value);
+		} break;
+	}
 }
 
 void SpaceInvadersMachine::KeyPressed(MachineKey) {

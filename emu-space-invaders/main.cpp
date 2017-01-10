@@ -5,6 +5,8 @@
 SDL_Window *window = NULL;
 SDL_Surface *screenSurface = NULL;
 
+// TODO: Next up - interrupts!
+
 void initWindow(SpaceInvadersMachine *machine) {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
