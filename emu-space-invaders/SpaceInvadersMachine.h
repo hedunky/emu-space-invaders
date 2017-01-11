@@ -19,7 +19,7 @@ public:
 	SpaceInvadersMachine();
 	~SpaceInvadersMachine();
 
-	bool TicksPassed();
+	bool TicksPassed(uint32 currentTicks);
 	void KeyPressed(MachineKey);
 
 	uint8 *Framebuffer();
@@ -35,4 +35,8 @@ private:
 	void OutPort(uint8 port, uint8 value);
 
 	uint8 inPort1;
+
+	uint32 lastTicks;
+	uint32 nextInterruptTime;
+	uint32 nextInterruptType;
 };

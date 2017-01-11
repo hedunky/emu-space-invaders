@@ -5,6 +5,8 @@
 #include <Windows.h>
 #include <stdio.h>
 
+static const uint32 interruptPeriod = 8;
+
 SpaceInvadersMachine::SpaceInvadersMachine() {
 	state = InitState();
 }
@@ -14,7 +16,25 @@ SpaceInvadersMachine::~SpaceInvadersMachine() {
 	delete state;
 }
 
-bool SpaceInvadersMachine::TicksPassed() {
+bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
+	if (lastTicks == 0) {
+		lastTicks = currentTicks;
+		nextInterruptTime = currentTicks + (interruptPeriod * 2);
+		nextInterruptType = 1;
+	}
+
+	bool shouldInterrupt = (currentTicks > nextInterruptTime);
+	if (state->interrupt_enable && shouldInterrupt) {
+		if (nextInterruptType == 1) {
+			processor.EmulateInterrupt(state, nextInterruptType);
+			nextInterruptType = 2;
+		} else {
+			processor.EmulateInterrupt(state, nextInterruptType);
+			nextInterruptType = 1;
+		}
+		nextInterruptTime = currentTicks + interruptPeriod;
+	}
+
 	uint8 *opcode = &state->memory[state->pc];
 	if (*opcode == 0xdb) {
 		// Machine specific handling for IN

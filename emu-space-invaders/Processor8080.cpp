@@ -33,6 +33,13 @@ void Processor8080::operationMovFromMemory(uint8 *reg, State8080 *state) {
 	state->pc++;
 }
 
+void Processor8080::operationPush(uint8 high, uint8 low, State8080 *state) {
+	state->memory[state->sp - 1] = high;
+	state->memory[state->sp - 2] = low;
+	state->sp -= 2;
+	state->pc++;
+}
+
 bool Processor8080::isMSBSet(uint8 x) {
 	bool result = ((0x80) == (x & 0x80));
 	return result;
@@ -303,10 +310,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 
 		case 0xc5: {
 			printOperation("PUSH B");
-			state->memory[state->sp - 1] = state->b;
-			state->memory[state->sp - 2] = state->c;
-			state->sp -= 2;
-			state->pc++;
+			operationPush(state->b, state->c, state);
 		} break;
 
 		case 0xc6: {
@@ -327,6 +331,15 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->sp += 2;
 		} break;
 
+		case 0xca: {
+			printOperation("JNZ addr");
+			if (state->flags.z) {
+				state->pc = memoryAddress(opcode);
+			} else {
+				state->pc += 2;
+			}
+		} break;
+
 		case 0xcd: {
 			printOperation("CALL addr");
 			uint16 ret = state->pc + 3;
@@ -344,12 +357,18 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc++;
 		} break;
 
+		case 0xd2: {
+			printOperation("JNC");
+			if (state->flags.c == 0) {
+				state->pc = memoryAddress(opcode);
+			} else {
+				state->pc += 2;
+			}
+		} break;
+
 		case 0xd5: {
 			printOperation("PUSH D");
-			state->memory[state->sp - 1] = state->d;
-			state->memory[state->sp - 2] = state->e;
-			state->sp -= 2;
-			state->pc++;
+			operationPush(state->d, state->e, state);
 		} break;
 
 		case 0xe1: {
@@ -362,10 +381,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 
 		case 0xe5: {
 			printOperation("PUSH H");
-			state->memory[state->sp - 1] = state->h;
-			state->memory[state->sp - 2] = state->l;
-			state->sp -= 2;
-			state->pc++;
+			operationPush(state->h, state->l, state);
 		} break;
 
 		case 0xe6: {
@@ -437,4 +453,16 @@ bool Processor8080::EmulateOperation(State8080 *state) {
     }
 
     return 0;
+}
+
+void Processor8080::EmulateInterrupt(State8080 *state, int interruptType) {
+	uint8 high = (state->pc & 0xFF00) >> 8;
+	uint8 low = (state->pc & 0xff);
+	operationPush(high, low, state);
+
+	//Set the PC to the low memory vector
+	state->pc = bitsInByte * interruptType;
+
+	printOperation("DI");
+	state->interrupt_enable = 0;
 }
