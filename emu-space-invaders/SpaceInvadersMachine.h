@@ -36,6 +36,7 @@ private:
 	uint8 InPort(uint8 port);
 
 	uint8 inPort1;
+	uint8 shiftOffset, shift0, shift1;
 
 	uint32 lastTicks;
 	uint32 nextInterruptTime;

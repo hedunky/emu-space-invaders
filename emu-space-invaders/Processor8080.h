@@ -45,6 +45,7 @@ private:
 	void operationMovFromMemory(uint8 *reg, State8080 *state);
 	void operationPush(uint8 high, uint8 low, State8080 *state);
 	void operationReturn(State8080 *state);
+	void operationCall(State8080 *state);
 
 	bool isMSBSet(uint8 x);
 	void LogicFlagsA(State8080 *state);

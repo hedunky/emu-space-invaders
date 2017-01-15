@@ -68,6 +68,11 @@ uint8 SpaceInvadersMachine::InPort(uint8 port) {
 			return 0;
 		} break;
 
+		case 3: {
+			uint16 value = (shift1 << 8) | shift0;
+			return ((value >> (8 - shiftOffset)) & 0xff);
+		} break;
+
 		default: {
 			printf("NOT IMPLEMENTED IN %d\n", port);
 			return 0;
@@ -77,8 +82,17 @@ uint8 SpaceInvadersMachine::InPort(uint8 port) {
 
 void SpaceInvadersMachine::OutPort(uint8 port, uint8 value) {
 	switch (port) {
+		case 2: {
+			shiftOffset = value & 0x7;
+		} break;
+
 		case 3: {
 			// TODO: Play sound
+		} break;
+
+		case 4: {
+			shift0 = shift1;
+			shift1 = value;
 		} break;
 
 		case 5: {
