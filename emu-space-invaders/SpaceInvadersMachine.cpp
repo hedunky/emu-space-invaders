@@ -40,7 +40,6 @@ bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 	if (*opcode == 0xdb) {
 		// Machine specific handling for IN
 		processor.printOperation("IN D8");
-		printf("inaddress: %0x\n", state->pc);
 
 		state->a = InPort(opcode[1]);
 		state->pc += 2;

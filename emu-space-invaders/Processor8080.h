@@ -46,10 +46,19 @@ private:
 	void operationPush(uint8 high, uint8 low, State8080 *state);
 	void operationReturn(State8080 *state);
 	void operationCall(State8080 *state);
+	void operationINR(State8080 *state, uint8 *reg);
+	void operationDCR(State8080 *state, uint8 *reg);
+	void operationANA(State8080 *state, uint8 value);
+	void operationCMP(State8080 *state, uint8 value);
+	void operationADD(State8080 *state, uint8 value);
 
 	bool isMSBSet(uint8 x);
 	void LogicFlagsA(State8080 *state);
+	void ArithmeticFlagsA(State8080 *state, uint16 result);
 	void LogicFlagsZSP(State8080 *state, uint8 value);
+
+	uint8 ReadFromHL(State8080* state);
+	void WriteToHL(State8080* state, uint8 value);
 	uint16 memoryAddress(uint8 *opcode);
 	uint8 highMemoryAddress(uint16 fullAddress);
 	uint8 lowMemoryAddress(uint16 fullAddress);
