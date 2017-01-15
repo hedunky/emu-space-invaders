@@ -51,6 +51,7 @@ private:
 	void operationANA(State8080 *state, uint8 value);
 	void operationCMP(State8080 *state, uint8 value);
 	void operationADD(State8080 *state, uint8 value);
+	void operationADC(State8080 *state, uint8 value);
 
 	bool isMSBSet(uint8 x);
 	void LogicFlagsA(State8080 *state);

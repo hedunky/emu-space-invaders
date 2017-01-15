@@ -78,6 +78,13 @@ void Processor8080::operationADD(State8080 *state, uint8 value) {
 	state->pc++;
 }
 
+void Processor8080::operationADC(State8080 *state, uint8 value) {
+	uint16 result = (uint16)state->a + (uint16)value + state->flags.c;
+	ArithmeticFlagsA(state, result);
+	state->a = (result & 0xff);
+	state->pc++;
+}
+
 void Processor8080::operationCall(State8080 *state) {
 	uint8 *opcode = &state->memory[state->pc];
 	uint16 ret = state->pc + 3;
@@ -242,6 +249,13 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc += 3;
 		} break;
 
+		case 0x12: {
+			printOperation("STAX D");
+			uint16 offset = (state->d << 8) | state->e;
+			state->memory[offset] = state->a;
+			state->pc++;
+		} break;
+
 		case 0x13: {
 			printOperation("INX D");
 			state->e++;
@@ -263,9 +277,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 
 		case 0x16: {
 			printOperation("MVI D, B8");
-
-			state->d = opcode[1];
-			state->pc += 2;
+			operationMovValueToRegister(&state->d, opcode[1], state);
 		} break;
 
 		case 0x19: {
@@ -283,6 +295,15 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			printOperation("LDAX D");
 			uint16 offset = (state->d << 8) | (state->e);
 			state->a = state->memory[offset];
+			state->pc++;
+		} break;
+
+		case 0x1b: {
+			printOperation("DCX D");
+			state->e -= 1;
+			if (state->e == 0xff) {
+				state->d -= 1;
+			}
 			state->pc++;
 		} break;
 
@@ -321,9 +342,27 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc++;
 		} break;
 
+		case 0x24: {
+			printOperation("INR H");
+			operationINR(state, &state->h);
+		} break;
+				   
 		case 0x26: {
 			printOperation("MVI H, D8");
 			operationMovValueToRegister(&state->h, opcode[1], state);
+		} break;
+
+		case 0x27: {
+			printOperation("DAA");
+			if ((state->a & 0xf) > 9) {
+				state->a += 6;
+			}
+			if ((state->a & 0xf0) > 0x90) {
+				uint16 result = (uint16)state->a + 0x60;
+				state->a = result & 0xff;
+				ArithmeticFlagsA(state, result);
+			}
+			state->pc++;
 		} break;
 
 		case 0x29: {
@@ -357,6 +396,11 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0x2c: {
 			printOperation("INR L");
 			operationINR(state, &state->l);
+		} break;
+
+		case 0x2e: {
+			printOperation("MVI L, D8");
+			operationMovValueToRegister(&state->l, opcode[1], state);
 		} break;
 
 		case 0x2f: {
@@ -442,6 +486,11 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0x47: {
 			printOperation("MOV B, A");
 			operationMov(&state->b, &state->a, state);
+		} break;
+
+		case 0x48: {
+			printOperation("MOV C, B");
+			operationMov(&state->c, &state->b, state);
 		} break;
 
 		case 0x4e: {
@@ -567,6 +616,16 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			operationADD(state, state->b);
 		} break;
 
+		case 0x81: {
+			printOperation("ADD C");
+			operationADD(state, state->c);
+		} break;
+
+		case 0x83: {
+			printOperation("ADD E");
+			operationADD(state, state->e);
+		} break;
+
 		case 0x85: {
 			printOperation("ADD L");
 			operationADD(state, state->l);
@@ -575,6 +634,20 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0x86: {
 			printOperation("ADD M");
 			operationADD(state, ReadFromHL(state));
+		} break;
+
+		case 0x8a: {
+			printOperation("ADC D");
+			operationADC(state, state->d);
+		} break;
+
+		case 0x97: {
+			printOperation("SUB A");
+
+			uint16 result = (uint16)state->a - (uint16)state->a; 
+			ArithmeticFlagsA(state, result); 
+			state->a = (result & 0xff);
+			state->pc++;
 		} break;
 
 		case 0xa0: {
@@ -765,7 +838,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			if (state->flags.c == 0) {
 				state->pc = memoryAddress(opcode);
 			} else {
-				state->pc += 2;
+				state->pc += 3;
 			}
 		} break;
 

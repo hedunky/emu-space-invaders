@@ -41,6 +41,22 @@ int rotatedOffset(int originalOffset, SpaceInvadersMachine *machine) {
 	return result;
 }
 
+void handleInput(SpaceInvadersMachine *machine, SDL_Event event) {
+	int key = -1;
+	switch (event.key.keysym.sym) {
+		case SDLK_TAB: key = MachineKeyCoin; break;
+		case SDLK_LEFT: key = MachineKeyP1Left; break;
+		case SDLK_RIGHT: key = MachineKeyP1Right; break;
+		case SDLK_RETURN: key = MachineKeyP1Start; break;
+		case SDLK_SPACE: key = MachineKeyP1Fire; break;
+	}
+
+	bool isPressed = (event.type == SDL_KEYDOWN);
+	if (key != -1) {
+		machine->KeyChanged((MachineKey)key, isPressed);
+	}
+}
+
 void mainLoop(SpaceInvadersMachine *machine) {
 	bool quit = false;
 	SDL_Event event;
@@ -55,11 +71,11 @@ void mainLoop(SpaceInvadersMachine *machine) {
 				}	break;
 
 				case SDL_KEYDOWN: {
-					switch (event.key.keysym.sym) {
-						case SDLK_TAB: {
-							machine->KeyPressed(MachineKeyCoin);
-						} break;
-					}
+					handleInput(machine, event);
+				} break;
+
+				case SDL_KEYUP: {
+					handleInput(machine, event);
 				} break;
 			}
 		}

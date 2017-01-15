@@ -108,8 +108,23 @@ void SpaceInvadersMachine::OutPort(uint8 port, uint8 value) {
 	}
 }
 
-void SpaceInvadersMachine::KeyPressed(MachineKey) {
-	printf("1");
+void SpaceInvadersMachine::KeyChanged(MachineKey key, bool isPressed) {
+	uint8 bit = 0;
+	switch (key) {
+		case MachineKeyCoin: bit = 0x01; break;
+		case MachineKeyP1Fire: bit = 0x10; break;
+		case MachineKeyP1Start: bit = 0x04; break;
+		case MachineKeyP1Left: bit = 0x20; break;
+		case MachineKeyP1Right: bit = 0x40; break;
+	}
+
+	if (bit != 0) {
+		if (isPressed) {
+			inPort1 |= bit;
+		} else {
+			inPort1 &= ~bit;
+		}
+	}
 }
 
 uint8 *SpaceInvadersMachine::Framebuffer() {

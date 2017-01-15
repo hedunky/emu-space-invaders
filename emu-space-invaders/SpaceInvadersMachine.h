@@ -12,6 +12,10 @@ http://computerarcheology.com/Arcade/SpaceInvaders/Code.html
 
 enum MachineKey{
 	MachineKeyCoin,
+	MachineKeyP1Left,
+	MachineKeyP1Right,
+	MachineKeyP1Fire,
+	MachineKeyP1Start,
 };
 
 class SpaceInvadersMachine {
@@ -20,7 +24,7 @@ public:
 	~SpaceInvadersMachine();
 
 	bool TicksPassed(uint32 currentTicks);
-	void KeyPressed(MachineKey);
+	void KeyChanged(MachineKey key, bool isPressed);
 
 	uint8 *Framebuffer();
 	uint32 GetScreenWidth();
