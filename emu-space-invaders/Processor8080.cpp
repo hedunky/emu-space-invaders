@@ -56,8 +56,24 @@ void Processor8080::LogicFlagsA(State8080 *state) {
 	state->flags.p = parity(state->a, 8);
 }
 
+void Processor8080::LogicFlagsZSP(State8080 *state, uint8 value) {
+	state->flags.z = (value == 0);
+	state->flags.s = isMSBSet(value);
+	state->flags.p = parity(value, 8);
+}
+
 uint16 Processor8080::memoryAddress(uint8 *opcode) {
 	uint16 result = (opcode[2] << 8) | opcode[1];
+	return result;
+}
+
+uint8 Processor8080::highMemoryAddress(uint16 fullAddress) {
+	uint8 result = (fullAddress & 0xFF00) >> 8;
+	return result;
+}
+
+uint8 Processor8080::lowMemoryAddress(uint16 fullAddress) {
+	uint8 result = (fullAddress & 0xff);
 	return result;
 }
 
@@ -79,9 +95,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0x05: {
 			printOperation("DCR B");
 			uint8 res = state->b - 1;
-			state->flags.z = (res == 0);
-			state->flags.s = isMSBSet(res);
-			state->flags.p = parity(res, 8);
+			LogicFlagsZSP(state, res);
 
 			state->b = res;
 			state->pc++;
@@ -97,8 +111,8 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint32 hl = (state->h << 8) | state->l;
 			uint32 bc = (state->b << 8) | state->c;
 			uint32 res = hl + bc;
-			state->h = (res & 0xff00) >> 8;
-			state->l = res & 0xff;
+			state->h = highMemoryAddress(res);
+			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
 		} break;
@@ -106,9 +120,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0x0d: {
 			printOperation("DCR C");
 			uint8 res = state->c - 1;
-			state->flags.z = (res == 0);
-			state->flags.s = isMSBSet(res);
-			state->flags.p = parity(res, 8);
+			LogicFlagsZSP(state, res);
 
 			state->c = res;
 			state->pc++;
@@ -149,8 +161,8 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint32 hl = (state->h << 8) | state->l;
 			uint32 de = (state->d << 8) | state->e;
 			uint32 res = hl + de;
-			state->h = (res & 0xff00) >> 8;
-			state->l = res & 0xff;
+			state->h = highMemoryAddress(res);
+			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
 		} break;
@@ -187,8 +199,8 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			printOperation("DAD H");
 			uint32 hl = (state->h << 8) | state->l;
 			uint32 res = hl + hl;
-			state->h = (res & 0xff00) >> 8;
-			state->l = res & 0xff;
+			state->h = highMemoryAddress(res);
+			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
 		} break;
@@ -204,6 +216,16 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = memoryAddress(opcode);
 			state->memory[offset] = state->a;
 			state->pc += 3;
+		} break;
+
+		case 0x35: {
+			printOperation("DCR M");
+			uint16 offset = (state->h << 8) | state->l;
+			uint8 value = state->memory[offset] - 1;
+			LogicFlagsZSP(state, value);
+
+			state->memory[offset] = value;
+			state->pc++;
 		} break;
 
 		case 0x36: {
@@ -343,8 +365,8 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0xcd: {
 			printOperation("CALL addr");
 			uint16 ret = state->pc + 3;
-			state->memory[state->sp - 1] = (ret >> 8) & (0xff);
-			state->memory[state->sp - 2] = ret & 0xff;
+			state->memory[state->sp - 1] = highMemoryAddress(ret);
+			state->memory[state->sp - 2] = lowMemoryAddress(ret);
 			state->sp = state->sp - 2;
 			state->pc = memoryAddress(opcode);
 		} break;
@@ -456,8 +478,8 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 }
 
 void Processor8080::EmulateInterrupt(State8080 *state, int interruptType) {
-	uint8 high = (state->pc & 0xFF00) >> 8;
-	uint8 low = (state->pc & 0xff);
+	uint8 high = highMemoryAddress(state->pc);
+	uint8 low = lowMemoryAddress(state->pc);
 	operationPush(high, low, state);
 
 	//Set the PC to the low memory vector

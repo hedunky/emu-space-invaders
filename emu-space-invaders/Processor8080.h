@@ -45,5 +45,8 @@ private:
 	void operationPush(uint8 high, uint8 low, State8080 *state);
 	bool isMSBSet(uint8 x);
 	void LogicFlagsA(State8080 *state);
+	void LogicFlagsZSP(State8080 *state, uint8 value);
 	uint16 memoryAddress(uint8 *opcode);
+	uint8 highMemoryAddress(uint16 fullAddress);
+	uint8 lowMemoryAddress(uint16 fullAddress);
 };
