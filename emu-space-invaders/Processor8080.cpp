@@ -431,6 +431,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 
 		case 0x41: {
 			printOperation("MOV B, C");
+			operationMov(&state->b, &state->c, state);
 		} break;
 
 		case 0x46: {
