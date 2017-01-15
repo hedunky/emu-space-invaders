@@ -33,6 +33,7 @@ private:
 	uint16 ReadFileIntoMemory(uint8 *memory, char *filename, uint16 offset);
 
 	void OutPort(uint8 port, uint8 value);
+	uint8 InPort(uint8 port);
 
 	uint8 inPort1;
 

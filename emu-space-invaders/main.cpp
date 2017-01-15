@@ -68,7 +68,7 @@ void mainLoop(SpaceInvadersMachine *machine) {
 			quit = machine->TicksPassed(currentTick);
 
 			uint32 ticksPassed = currentTick - lastTick;
-			if (ticksPassed < 1000) {
+			if (ticksPassed < 100) {
 				continue;
 			}
 			lastTick = currentTick;

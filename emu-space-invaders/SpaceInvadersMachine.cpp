@@ -9,6 +9,7 @@ static const uint32 interruptPeriod = 8;
 
 SpaceInvadersMachine::SpaceInvadersMachine() {
 	state = InitState();
+	inPort1 = 0;
 }
 
 SpaceInvadersMachine::~SpaceInvadersMachine() {
@@ -38,7 +39,11 @@ bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 	uint8 *opcode = &state->memory[state->pc];
 	if (*opcode == 0xdb) {
 		// Machine specific handling for IN
-		printf("2");
+		processor.printOperation("IN D8");
+		printf("inaddress: %0x\n", state->pc);
+
+		state->a = InPort(opcode[1]);
+		state->pc += 2;
 	} else if (*opcode == 0xd3) {
 		// Machine specific handling for OUT
 		processor.printOperation("OUT D8");
@@ -53,8 +58,24 @@ bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 	return 0;
 }
 
-void SpaceInvadersMachine::OutPort(uint8 port, uint8 value)
-{
+uint8 SpaceInvadersMachine::InPort(uint8 port) {
+	switch (port) {
+		case 1: {
+			return inPort1;
+		} break;
+
+		case 2: {
+			return 0;
+		} break;
+
+		default: {
+			printf("NOT IMPLEMENTED IN %d\n", port);
+			return 0;
+		} break;
+	}
+}
+
+void SpaceInvadersMachine::OutPort(uint8 port, uint8 value) {
 	switch (port) {
 		case 3: {
 			// TODO: Play sound

@@ -40,6 +40,11 @@ void Processor8080::operationPush(uint8 high, uint8 low, State8080 *state) {
 	state->pc++;
 }
 
+void Processor8080::operationReturn(State8080 *state) {
+	state->pc = state->memory[state->sp] | (state->memory[state->sp + 1] << 8);
+	state->sp += 2;
+}
+
 bool Processor8080::isMSBSet(uint8 x) {
 	bool result = ((0x80) == (x & 0x80));
 	return result;
@@ -92,6 +97,15 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc += 3;
 		} break;
 
+		case 0x03: {
+			printOperation("INX B");
+			state->c++;
+			if (state->c == 0) {
+				state->b++;
+			}
+			state->pc++;
+		} break;
+
 		case 0x05: {
 			printOperation("DCR B");
 			uint8 res = state->b - 1;
@@ -114,6 +128,13 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->h = highMemoryAddress(res);
 			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
+			state->pc++;
+		} break;
+
+		case 0x0a: {
+			printOperation("LDAX B");
+			uint16 offset = (state->b << 8) | (state->c);
+			state->a = state->memory[offset];
 			state->pc++;
 		} break;
 
@@ -235,6 +256,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc += 2;
 		} break;
 
+		case 0x37: {
+			printOperation("SCF");
+			state->flags.c = 1;
+			state->pc++;
+		} break;
+
 		case 0x3a: {
 			printOperation("LDA addr");
 			uint16 offset = memoryAddress(opcode);
@@ -242,9 +269,23 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc += 3;
 		} break;
 
+		case 0x3d: {
+			printOperation("DCR A");
+			uint8 res = state->a - 1;
+			LogicFlagsZSP(state, res);
+
+			state->a = res;
+			state->pc++;
+		} break;
+
 		case 0x3e: {
 			printOperation("MVI A, D8");
 			operationMovValueToRegister(&state->a, opcode[1], state);
+		} break;
+
+		case 0x4f: {
+			printOperation("MOV C, A");
+			operationMov(&state->c, &state->a, state);
 		} break;
 
 		case 0x56: {
@@ -252,14 +293,29 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			operationMovFromMemory(&state->d, state);
 		} break;
 
+		case 0x57: {
+			printOperation("MOV D, A");
+			operationMov(&state->d, &state->a, state);
+		} break;
+
 		case 0x5e: {
 			printOperation("MOV E, M");
 			operationMovFromMemory(&state->e, state);
 		} break;
 
+		case 0x5f: {
+			printOperation("MOV E, A");
+			operationMov(&state->e, &state->a, state);
+		} break;
+
 		case 0x66: {
 			printOperation("MOV H, M");
 			operationMovFromMemory(&state->h, state);
+		} break;
+
+		case 0x67: {
+			printOperation("MOV H, A");
+			operationMov(&state->h, &state->a, state);
 		} break;
 
 		case 0x6f: {
@@ -289,6 +345,11 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			operationMov(&state->a, &state->h, state);
 		} break;
 
+		case 0x7d: {
+			printOperation("MOV A, L");
+			operationMov(&state->a, &state->l, state);
+		} break;
+
 		case 0x7e: {
 			printOperation("MOV A, M");
 			operationMovFromMemory(&state->a, state);
@@ -306,6 +367,27 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->a ^= state->a;
 			LogicFlagsA(state);
 			state->pc++;
+		} break;
+
+		case 0xb6: {
+			printOperation("ORA M");
+
+			uint16_t offset = (state->h << 8) | state->l;
+			uint8 value = state->memory[offset];
+
+			state->a = state->a | value;
+			LogicFlagsA(state);
+
+			state->pc++;
+		} break;
+
+		case 0xc0: {
+			printOperation("RET NZ");
+			if (state->flags.z == 0) {
+				operationReturn(state);
+			} else {
+				state->pc++;
+			}
 		} break;
 
 		case 0xc1: {
@@ -347,10 +429,18 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->pc += 2;
 		} break;
 
+		case 0xc8: {
+			printOperation("RET Z");
+			if (state->flags.z) {
+				operationReturn(state);
+			} else {
+				state->pc++;
+			}
+		} break;
+
 		case 0xc9: {
 			printOperation("RET");
-			state->pc = state->memory[state->sp] | (state->memory[state->sp + 1] << 8);
-			state->sp += 2;
+			operationReturn(state);
 		} break;
 
 		case 0xca: {
@@ -391,6 +481,24 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 		case 0xd5: {
 			printOperation("PUSH D");
 			operationPush(state->d, state->e, state);
+		} break;
+
+		case 0xd8: {
+			printOperation("RET C");
+			if (state->flags.c != 0) {
+				operationReturn(state);
+			} else {
+				state->pc++;
+			}
+		} break;
+
+		case 0xda: {
+			printOperation("JP C");
+			if (state->flags.c != 0) {
+				state->pc = memoryAddress(opcode);
+			} else {
+				state->pc += 3;
+			}
 		} break;
 
 		case 0xe1: {
