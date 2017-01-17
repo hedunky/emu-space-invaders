@@ -1,9 +1,11 @@
 #include "Processor8080.h"
 #include <stdio.h>
+#include <cstdlib>
 
 void Processor8080::unimplementedInstruction(State8080 *state) {
 	uint8 *opcode = &state->memory[state->pc];
     printf("Error: Unimplemented instruction %0x at %0x \n", *opcode, state->pc);
+	exit(0);
 }
 
 int Processor8080::parity(int x, int size) {
@@ -17,75 +19,86 @@ int Processor8080::parity(int x, int size) {
 	return (0 == (p & 0x1));
 }
 
-void Processor8080::operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state) {
+uint8 Processor8080::operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state) {
 	*to = value;
 	state->pc += 2;
+	return 7;
 }
 
-void Processor8080::operationMov(uint8 *to, uint8 *from, State8080 *state) {
+uint8 Processor8080::operationMov(uint8 *to, uint8 *from, State8080 *state) {
 	*to = *from;
 	state->pc++;
+	return 5;
 }
 
-void Processor8080::operationMovFromMemory(uint8 *reg, State8080 *state) {
+uint8 Processor8080::operationMovFromMemory(uint8 *reg, State8080 *state) {
 	uint8 value = ReadFromHL(state);
 	*reg = value;
 	state->pc++;
+	return 7;
 }
 
-void Processor8080::operationPush(uint8 high, uint8 low, State8080 *state) {
+uint8 Processor8080::operationPush(uint8 high, uint8 low, State8080 *state) {
 	state->memory[state->sp - 1] = high;
 	state->memory[state->sp - 2] = low;
 	state->sp -= 2;
 	state->pc++;
+	return 11;
 }
 
-void Processor8080::operationReturn(State8080 *state) {
+uint8 Processor8080::operationReturn(State8080 *state) {
 	state->pc = state->memory[state->sp] | (state->memory[state->sp + 1] << 8);
 	state->sp += 2;
+	return 10;
 }
 
-void Processor8080::operationINR(State8080 *state, uint8 *reg) {
+uint8 Processor8080::operationINR(State8080 *state, uint8 *reg) {
 	*reg += 1;
 	LogicFlagsZSP(state, *reg);
 	state->pc++;
+	return 5;
 }
 
-void Processor8080::operationDCR(State8080 *state, uint8 *reg) {
+uint8 Processor8080::operationDCR(State8080 *state, uint8 *reg) {
 	uint8 result = *reg - 1;
 	LogicFlagsZSP(state, result);
 
 	*reg = result;
 	state->pc++;
+	return 5;
 }
 
-void Processor8080::operationANA(State8080 *state, uint8 value) {
+uint8 Processor8080::operationANA(State8080 *state, uint8 value) {
 	state->a &= value;
 	LogicFlagsA(state);
 	state->pc++;
+	return 4;
 }
 
-void Processor8080::operationCMP(State8080 *state, uint8 value) {
+uint8 Processor8080::operationCMP(State8080 *state, uint8 value) {
 	uint16 result = (uint16)state->a - (uint16)value;
 	ArithmeticFlagsA(state, result);
 	state->pc++;
+	return 4;
 }
 
-void Processor8080::operationADD(State8080 *state, uint8 value) {
+uint8 Processor8080::operationADD(State8080 *state, uint8 value) {
 	uint16 result = (uint16)state->a + (uint16)value;
 	ArithmeticFlagsA(state, result);
 	state->a = (result & 0xff);
 	state->pc++;
+	return 4;
 }
 
-void Processor8080::operationADC(State8080 *state, uint8 value) {
+uint8 Processor8080::operationADC(State8080 *state, uint8 value) {
 	uint16 result = (uint16)state->a + (uint16)value + state->flags.c;
 	ArithmeticFlagsA(state, result);
 	state->a = (result & 0xff);
 	state->pc++;
+	return 4;
 }
 
-void Processor8080::operationCall(State8080 *state) {
+uint8 Processor8080::operationCall(State8080 *state) {
 	uint8 *opcode = &state->memory[state->pc];
 	uint16 ret = state->pc + 3;
 
@@ -94,6 +107,7 @@ void Processor8080::operationCall(State8080 *state) {
 
 	state->sp -= 2;
 	state->pc = memoryAddress(opcode);
+	return 17;
 }
 
 bool Processor8080::isMSBSet(uint8 x) {
@@ -151,13 +165,15 @@ uint8 Processor8080::lowMemoryAddress(uint16 fullAddress) {
 	return result;
 }
 
-bool Processor8080::EmulateOperation(State8080 *state) {
+uint8 Processor8080::EmulateOperation(State8080 *state) {
     uint8 *opcode = &state->memory[state->pc];
+	int cycles = -1;
 
     switch (*opcode) {
 		case 0x00: {
 			printOperation("NOP");
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x01: {
@@ -165,6 +181,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->b = opcode[2];
 			state->c = opcode[1];
 			state->pc += 3;
+			cycles = 10;
 		} break;
 
 		case 0x03: {
@@ -174,21 +191,22 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				state->b++;
 			}
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x04: {
 			printOperation("INR B");
-			operationINR(state, &state->b);
+			cycles = operationINR(state, &state->b);
 		} break;
 
 		case 0x05: {
 			printOperation("DCR B");
-			operationDCR(state, &state->b);
+			cycles = operationDCR(state, &state->b);
 		} break;
 
 		case 0x06: {
 			printOperation("MVI B, D8");
-			operationMovValueToRegister(&state->b, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->b, opcode[1], state);
 		} break;
 
 		case 0x07: {
@@ -198,6 +216,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = isMSBSet(value);
 
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x09: {
@@ -209,6 +228,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0x0a: {
@@ -216,21 +236,22 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = (state->b << 8) | (state->c);
 			state->a = state->memory[offset];
 			state->pc++;
+			cycles = 7;
 		} break;
 
 		case 0x0c: {
 			printOperation("INR C");
-			operationINR(state, &state->c);
+			cycles = operationINR(state, &state->c);
 		} break;
 
 		case 0x0d: {
 			printOperation("DCR C");
-			operationDCR(state, &state->c);
+			cycles = operationDCR(state, &state->c);
 		} break;
 
 		case 0x0e: {
 			printOperation("MVI C, D8");
-			operationMovValueToRegister(&state->c, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->c, opcode[1], state);
 		} break;
 
 		case 0x0f: {
@@ -240,6 +261,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->a = (firstBit << 7) | (x >> 1);
 			state->flags.c = firstBit;
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x11: {
@@ -247,6 +269,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->d = opcode[2];
 			state->e = opcode[1];
 			state->pc += 3;
+			cycles = 10;
 		} break;
 
 		case 0x12: {
@@ -254,6 +277,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = (state->d << 8) | state->e;
 			state->memory[offset] = state->a;
 			state->pc++;
+			cycles = 7;
 		} break;
 
 		case 0x13: {
@@ -263,21 +287,22 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				state->d++;
 			}
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x14: {
 			printOperation("INR D");
-			operationINR(state, &state->d);
+			cycles = operationINR(state, &state->d);
 		} break;
 
 		case 0x15: {
 			printOperation("DCR D");
-			operationDCR(state, &state->d);
+			cycles = operationDCR(state, &state->d);
 		} break;
 
 		case 0x16: {
 			printOperation("MVI D, B8");
-			operationMovValueToRegister(&state->d, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->d, opcode[1], state);
 		} break;
 
 		case 0x19: {
@@ -289,6 +314,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0x1a: {
@@ -296,6 +322,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = (state->d << 8) | (state->e);
 			state->a = state->memory[offset];
 			state->pc++;
+			cycles = 7;
 		} break;
 
 		case 0x1b: {
@@ -305,6 +332,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				state->d -= 1;
 			}
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x1f: {
@@ -315,6 +343,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = (1 == (value & 1));
 
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x21: {
@@ -322,6 +351,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->h = opcode[2];
 			state->l = opcode[1];
 			state->pc += 3;
+			cycles = 10;
 		} break;
 
 		case 0x22: {
@@ -331,6 +361,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->memory[offset] = state->l;
 			state->memory[offset + 1] = state->h;
 			state->pc += 3;
+			cycles = 16;
 		} break;
 
 		case 0x23: {
@@ -340,16 +371,17 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				state->h++;
 			}
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x24: {
 			printOperation("INR H");
-			operationINR(state, &state->h);
+			cycles = operationINR(state, &state->h);
 		} break;
 				   
 		case 0x26: {
 			printOperation("MVI H, D8");
-			operationMovValueToRegister(&state->h, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->h, opcode[1], state);
 		} break;
 
 		case 0x27: {
@@ -363,6 +395,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				ArithmeticFlagsA(state, result);
 			}
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x29: {
@@ -373,6 +406,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->l = lowMemoryAddress(res);
 			state->flags.c = ((res & 0xffff0000) != 0);
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0x2a: {
@@ -382,6 +416,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->l = state->memory[offset];
 			state->h = state->memory[offset + 1];
 			state->pc += 3;
+			cycles = 16;
 		} break;
 
 		case 0x2b: {
@@ -391,28 +426,31 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 				state->h -= 1;
 			}
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x2c: {
 			printOperation("INR L");
-			operationINR(state, &state->l);
+			cycles = operationINR(state, &state->l);
 		} break;
 
 		case 0x2e: {
 			printOperation("MVI L, D8");
-			operationMovValueToRegister(&state->l, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->l, opcode[1], state);
 		} break;
 
 		case 0x2f: {
 			printOperation("CMA");
 			state->a = ~state->a;
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x31: {
 			printOperation("LXI SP, D16");
 			state->sp = memoryAddress(opcode);
 			state->pc += 3;
+			cycles = 10;
 		} break;
 
 		case 0x32: {
@@ -420,6 +458,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = memoryAddress(opcode);
 			state->memory[offset] = state->a;
 			state->pc += 3;
+			cycles = 13;
 		} break;
 
 		case 0x34: {
@@ -428,6 +467,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			LogicFlagsZSP(state, result);
 			WriteToHL(state, result);
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0x35: {
@@ -437,18 +477,21 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 
 			WriteToHL(state, value);
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0x36: {
 			printOperation("MVI M, D8");
 			WriteToHL(state, opcode[1]);
 			state->pc += 2;
+			cycles = 10;
 		} break;
 
 		case 0x37: {
 			printOperation("SCF");
 			state->flags.c = 1;
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0x3a: {
@@ -456,189 +499,193 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			uint16 offset = memoryAddress(opcode);
 			state->a = state->memory[offset];
 			state->pc += 3;
+			cycles = 13;
 		} break;
 
 		case 0x3c: {
 			printOperation("INR A");
-			operationINR(state, &state->a);
+			cycles = operationINR(state, &state->a);
 		} break;
 
 		case 0x3d: {
 			printOperation("DCR A");
-			operationDCR(state, &state->a);
+			cycles = operationDCR(state, &state->a);
 		} break;
 
 		case 0x3e: {
 			printOperation("MVI A, D8");
-			operationMovValueToRegister(&state->a, opcode[1], state);
+			cycles = operationMovValueToRegister(&state->a, opcode[1], state);
 		} break;
 
 		case 0x41: {
 			printOperation("MOV B, C");
-			operationMov(&state->b, &state->c, state);
+			cycles = operationMov(&state->b, &state->c, state);
 		} break;
 
 		case 0x46: {
 			printOperation("MOV B, M");
-			operationMovFromMemory(&state->b, state);
+			cycles = operationMovFromMemory(&state->b, state);
 		} break;
 
 		case 0x47: {
 			printOperation("MOV B, A");
-			operationMov(&state->b, &state->a, state);
+			cycles = operationMov(&state->b, &state->a, state);
 		} break;
 
 		case 0x48: {
 			printOperation("MOV C, B");
-			operationMov(&state->c, &state->b, state);
+			cycles = operationMov(&state->c, &state->b, state);
 		} break;
 
 		case 0x4e: {
 			printOperation("MOV C, M");
-			operationMovFromMemory(&state->c, state);
+			cycles = operationMovFromMemory(&state->c, state);
 		} break;
 
 		case 0x4f: {
 			printOperation("MOV C, A");
-			operationMov(&state->c, &state->a, state);
+			cycles = operationMov(&state->c, &state->a, state);
 		} break;
 
 		case 0x56: {
 			printOperation("MOV D, M");
-			operationMovFromMemory(&state->d, state);
+			cycles = operationMovFromMemory(&state->d, state);
 		} break;
 
 		case 0x57: {
 			printOperation("MOV D, A");
-			operationMov(&state->d, &state->a, state);
+			cycles = operationMov(&state->d, &state->a, state);
 		} break;
 
 		case 0x5e: {
 			printOperation("MOV E, M");
-			operationMovFromMemory(&state->e, state);
+			cycles = operationMovFromMemory(&state->e, state);
 		} break;
 
 		case 0x5f: {
 			printOperation("MOV E, A");
-			operationMov(&state->e, &state->a, state);
+			cycles = operationMov(&state->e, &state->a, state);
 		} break;
 
 		case 0x61: {
 			printOperation("MOV H, C");
-			operationMov(&state->h, &state->c, state);
+			cycles = operationMov(&state->h, &state->c, state);
 		} break;
 
 		case 0x65: {
 			printOperation("MOV H, L");
-			operationMov(&state->h, &state->l, state);
+			cycles = operationMov(&state->h, &state->l, state);
 		} break;
 
 		case 0x66: {
 			printOperation("MOV H, M");
-			operationMovFromMemory(&state->h, state);
+			cycles = operationMovFromMemory(&state->h, state);
 		} break;
 
 		case 0x67: {
 			printOperation("MOV H, A");
-			operationMov(&state->h, &state->a, state);
+			cycles = operationMov(&state->h, &state->a, state);
 		} break;
 
 		case 0x68: {
 			printOperation("MOV L, B");
-			operationMov(&state->l, &state->b, state);
+			cycles = operationMov(&state->l, &state->b, state);
 		} break;
 
 		case 0x69: {
 			printOperation("MOV L, C");
-			operationMov(&state->l, &state->c, state);
+			cycles = operationMov(&state->l, &state->c, state);
 		} break;
 
 		case 0x6f: {
 			printOperation("MOV L, A");
-			operationMov(&state->l, &state->a, state);
+			cycles = operationMov(&state->l, &state->a, state);
 		} break;
 
 		case 0x70: {
 			printOperation("MOV M, B");
 			WriteToHL(state, state->b);
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x71: {
 			printOperation("MOV M, C");
 			WriteToHL(state, state->c);
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x77: {
 			printOperation("MOV M, A");
 			WriteToHL(state, state->a);
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0x79: {
 			printOperation("MOV A, C");
-			operationMov(&state->a, &state->c, state);
+			cycles = operationMov(&state->a, &state->c, state);
 		} break;
 
 		case 0x78: {
 			printOperation("MOV A, B");
-			operationMov(&state->a, &state->b, state);
+			cycles = operationMov(&state->a, &state->b, state);
 		} break;
 
 		case 0x7a: {
 			printOperation("MOV A, D");
-			operationMov(&state->a, &state->d, state);
+			cycles = operationMov(&state->a, &state->d, state);
 		} break;
 
 		case 0x7b: {
 			printOperation("MOV A, E");
-			operationMov(&state->a, &state->e, state);
+			cycles = operationMov(&state->a, &state->e, state);
 		} break;
 
 		case 0x7c: {
 			printOperation("MOV A, H");
-			operationMov(&state->a, &state->h, state);
+			cycles = operationMov(&state->a, &state->h, state);
 		} break;
 
 		case 0x7d: {
 			printOperation("MOV A, L");
-			operationMov(&state->a, &state->l, state);
+			cycles = operationMov(&state->a, &state->l, state);
 		} break;
 
 		case 0x7e: {
 			printOperation("MOV A, M");
-			operationMovFromMemory(&state->a, state);
+			cycles = operationMovFromMemory(&state->a, state);
 		} break;
 
 		case 0x80: {
 			printOperation("ADD B");
-			operationADD(state, state->b);
+			cycles = operationADD(state, state->b);
 		} break;
 
 		case 0x81: {
 			printOperation("ADD C");
-			operationADD(state, state->c);
+			cycles = operationADD(state, state->c);
 		} break;
 
 		case 0x83: {
 			printOperation("ADD E");
-			operationADD(state, state->e);
+			cycles = operationADD(state, state->e);
 		} break;
 
 		case 0x85: {
 			printOperation("ADD L");
-			operationADD(state, state->l);
+			cycles = operationADD(state, state->l);
 		} break;
 
 		case 0x86: {
 			printOperation("ADD M");
-			operationADD(state, ReadFromHL(state));
+			cycles = operationADD(state, ReadFromHL(state));
 		} break;
 
 		case 0x8a: {
 			printOperation("ADC D");
-			operationADC(state, state->d);
+			cycles = operationADC(state, state->d);
 		} break;
 
 		case 0x97: {
@@ -648,21 +695,22 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			ArithmeticFlagsA(state, result); 
 			state->a = (result & 0xff);
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xa0: {
 			printOperation("ANA B");
-			operationANA(state, state->b);
+			cycles = operationANA(state, state->b);
 		} break;
 
 		case 0xa6: {
 			printOperation("ANA M");
-			operationANA(state, ReadFromHL(state)); 
+			cycles = operationANA(state, ReadFromHL(state)); 
 		} break;
 
 		case 0xa7: {
 			printOperation("ANA A");
-			operationANA(state, state->a);
+			cycles = operationANA(state, state->a);
 		} break;
 
 		case 0xa8: {
@@ -670,6 +718,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->a ^= state->b;
 			LogicFlagsA(state);
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xaf: {
@@ -677,6 +726,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->a ^= state->a;
 			LogicFlagsA(state);
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xb0: {
@@ -686,6 +736,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			LogicFlagsA(state);
 
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xb4: {
@@ -695,6 +746,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			LogicFlagsA(state);
 
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xb6: {
@@ -705,21 +757,22 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			LogicFlagsA(state);
 
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xb8: {
 			printOperation("CMP B");
-			operationCMP(state, state->b);
+			cycles = operationCMP(state, state->b);
 		} break;
 
 		case 0xbc: {
 			printOperation("CMP H");
-			operationCMP(state, state->h);
+			cycles = operationCMP(state, state->h);
 		} break;
 
 		case 0xbe: {
 			printOperation("CMP M");
-			operationCMP(state, ReadFromHL(state));
+			cycles = operationCMP(state, ReadFromHL(state));
 		} break;
 
 		case 0xc0: {
@@ -729,6 +782,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc++;
 			}
+			cycles = 11;
 		} break;
 
 		case 0xc1: {
@@ -737,6 +791,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->b = state->memory[state->sp + 1];
 			state->sp += 2;
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0xc2: {
@@ -746,11 +801,13 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 10;
 		} break;
 
 		case 0xc3: {
 			printOperation("JMP addr");
 			state->pc = memoryAddress(opcode);
+			cycles = 10;
 		} break;
 
 		case 0xc4: {
@@ -760,11 +817,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 17;
 		} break;
 
 		case 0xc5: {
 			printOperation("PUSH B");
-			operationPush(state->b, state->c, state);
+			cycles = operationPush(state->b, state->c, state);
 		} break;
 
 		case 0xc6: {
@@ -777,6 +835,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = result > 0xff;
 			state->a = result8Bit;
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		case 0xc8: {
@@ -786,11 +845,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc++;
 			}
+			cycles = 11;
 		} break;
 
 		case 0xc9: {
 			printOperation("RET");
-			operationReturn(state);
+			cycles = operationReturn(state);
 		} break;
 
 		case 0xca: {
@@ -800,6 +860,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 10;
 		} break;
 
 		case 0xcc: {
@@ -809,11 +870,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 17;
 		} break;
 
 		case 0xcd: {
 			printOperation("CALL addr");
-			operationCall(state);
+			cycles = operationCall(state);
 		} break;
 
 		case 0xd0: {
@@ -823,6 +885,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc++;
 			}
+			cycles = 11;
 		} break;
 
 		case 0xd1: {
@@ -831,6 +894,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->d = state->memory[state->sp + 1];
 			state->sp += 2;
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0xd2: {
@@ -840,6 +904,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 10;
 		} break;
 
 		case 0xd4: {
@@ -849,11 +914,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 17;
 		} break;
 
 		case 0xd5: {
 			printOperation("PUSH D");
-			operationPush(state->d, state->e, state);
+			cycles = operationPush(state->d, state->e, state);
 		} break;
 
 		case 0xd6: {
@@ -864,6 +930,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = (state->a < opcode[1]);
 			state->a = value;
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		case 0xd8: {
@@ -873,6 +940,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc++;
 			}
+			cycles = 11;
 		} break;
 
 		case 0xda: {
@@ -882,6 +950,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 10;
 		} break;
 
 		case 0xde: {
@@ -891,6 +960,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = (value > 0xff);
 			state->a = value & 0xff;
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		case 0xe1: {
@@ -899,6 +969,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->h = state->memory[state->sp + 1];
 			state->sp += 2;
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0xe3: {
@@ -910,11 +981,12 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->memory[state->sp] = l;
 			state->memory[state->sp + 1] = h;
 			state->pc++;
+			cycles = 18;
 		} break;
 
 		case 0xe5: {
 			printOperation("PUSH H");
-			operationPush(state->h, state->l, state);
+			cycles = operationPush(state->h, state->l, state);
 		} break;
 
 		case 0xe6: {
@@ -922,11 +994,13 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->a &= opcode[1];
 			LogicFlagsA(state);
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		case 0xe9: {
 			printOperation("PCHL");
 			state->pc = (state->h << 8) | state->l;
+			cycles = 5;
 		} break;
 
 		case 0xeb: {
@@ -938,6 +1012,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->h = origD;
 			state->l = origE;
 			state->pc++;
+			cycles = 5;
 		} break;
 
 		case 0xf1: {
@@ -953,6 +1028,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->sp += 2;
 
 			state->pc++;
+			cycles = 10;
 		} break;
 
 		case 0xf5: {
@@ -966,6 +1042,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->memory[state->sp - 2] = psw;
 			state->sp = state->sp - 2;
 			state->pc++;
+			cycles = 11;
 		} break;
 
 		case 0xf6: {
@@ -976,6 +1053,7 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.c = 0;
 			state->a = value;
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		case 0xfa: {
@@ -985,12 +1063,14 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			} else {
 				state->pc += 3;
 			}
+			cycles = 10;
 		} break;
 
 		case 0xfb: {
 			printOperation("EI");
 			state->interrupt_enable = 1;
 			state->pc++;
+			cycles = 4;
 		} break;
 
 		case 0xfe: {
@@ -1001,15 +1081,18 @@ bool Processor8080::EmulateOperation(State8080 *state) {
 			state->flags.p = parity(x, 8);
 			state->flags.c = (state->a < opcode[1]);
 			state->pc += 2;
+			cycles = 7;
 		} break;
 
 		default: {
 			unimplementedInstruction(state);
-			return 1;
 		} break;
     }
 
-    return 0;
+	if (cycles == -1) {
+		unimplementedInstruction(state);
+	}
+	return cycles;
 }
 
 void Processor8080::EmulateInterrupt(State8080 *state, int interruptType) {

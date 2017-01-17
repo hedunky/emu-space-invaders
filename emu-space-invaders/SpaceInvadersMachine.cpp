@@ -50,8 +50,7 @@ bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 		OutPort(opcode[1], state->a);
 		state->pc += 2;
 	} else {
-		bool result = processor.EmulateOperation(state);
-		return result;
+		uint8 cycles = processor.EmulateOperation(state);
 	}
 
 	return 0;

@@ -33,25 +33,25 @@ typedef struct State8080 {
 
 class Processor8080 {
 public:
-	bool EmulateOperation(State8080 *state);
+	uint8 EmulateOperation(State8080 *state); // Возвращает количество циклов, прошедших за операцию
 	void EmulateInterrupt(State8080 *state, int interruptType);
 	void printOperation(char *instruction);
 private:
 	void unimplementedInstruction(State8080 *state);
 	int parity(int x, int size);
 
-	void operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state);
-	void operationMov(uint8 *to, uint8 *from, State8080 *state);
-	void operationMovFromMemory(uint8 *reg, State8080 *state);
-	void operationPush(uint8 high, uint8 low, State8080 *state);
-	void operationReturn(State8080 *state);
-	void operationCall(State8080 *state);
-	void operationINR(State8080 *state, uint8 *reg);
-	void operationDCR(State8080 *state, uint8 *reg);
-	void operationANA(State8080 *state, uint8 value);
-	void operationCMP(State8080 *state, uint8 value);
-	void operationADD(State8080 *state, uint8 value);
-	void operationADC(State8080 *state, uint8 value);
+	uint8 operationMovValueToRegister(uint8 *to, uint8 value, State8080 *state);
+	uint8 operationMov(uint8 *to, uint8 *from, State8080 *state);
+	uint8 operationMovFromMemory(uint8 *reg, State8080 *state);
+	uint8 operationPush(uint8 high, uint8 low, State8080 *state);
+	uint8 operationReturn(State8080 *state);
+	uint8 operationCall(State8080 *state);
+	uint8 operationINR(State8080 *state, uint8 *reg);
+	uint8 operationDCR(State8080 *state, uint8 *reg);
+	uint8 operationANA(State8080 *state, uint8 value);
+	uint8 operationCMP(State8080 *state, uint8 value);
+	uint8 operationADD(State8080 *state, uint8 value);
+	uint8 operationADC(State8080 *state, uint8 value);
 
 	bool isMSBSet(uint8 x);
 	void LogicFlagsA(State8080 *state);
