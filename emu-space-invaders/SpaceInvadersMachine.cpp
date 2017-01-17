@@ -17,7 +17,7 @@ SpaceInvadersMachine::~SpaceInvadersMachine() {
 	delete state;
 }
 
-bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
+void SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 	if (lastTicks == 0) {
 		lastTicks = currentTicks;
 		nextInterruptTime = currentTicks + (interruptPeriod * 2);
@@ -36,24 +36,34 @@ bool SpaceInvadersMachine::TicksPassed(uint32 currentTicks) {
 		nextInterruptTime = currentTicks + interruptPeriod;
 	}
 
-	uint8 *opcode = &state->memory[state->pc];
-	if (*opcode == 0xdb) {
-		// Machine specific handling for IN
-		processor.printOperation("IN D8");
+	//CPU is 2 MHz => 2 million cycles/sec => 2000 cycles/ms
 
-		state->a = InPort(opcode[1]);
-		state->pc += 2;
-	} else if (*opcode == 0xd3) {
-		// Machine specific handling for OUT
-		processor.printOperation("OUT D8");
+	double timePassed = currentTicks - lastTicks;
+	int cyclesPassed = 2000 * timePassed;
+	int cycles = 0;
 
-		OutPort(opcode[1], state->a);
-		state->pc += 2;
-	} else {
-		uint8 cycles = processor.EmulateOperation(state);
+	while (cycles < cyclesPassed) {
+		uint8 *opcode = &state->memory[state->pc];
+		if (*opcode == 0xdb) {
+			// Machine specific handling for IN
+			processor.printOperation("IN D8");
+
+			state->a = InPort(opcode[1]);
+			state->pc += 2;
+			cycles += 3;
+		} else if (*opcode == 0xd3) {
+			// Machine specific handling for OUT
+			processor.printOperation("OUT D8");
+
+			OutPort(opcode[1], state->a);
+			state->pc += 2;
+			cycles += 3;
+		} else {
+			cycles += processor.EmulateOperation(state);
+		}
 	}
 
-	return 0;
+	lastTicks = currentTicks;
 }
 
 uint8 SpaceInvadersMachine::InPort(uint8 port) {

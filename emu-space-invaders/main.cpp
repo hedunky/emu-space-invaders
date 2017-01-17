@@ -81,7 +81,7 @@ void mainLoop(SpaceInvadersMachine *machine) {
 		}
 		if (!quit) {
 			uint32 currentTick = SDL_GetTicks();
-			quit = machine->TicksPassed(currentTick);
+			machine->TicksPassed(currentTick);
 
 			uint32 ticksPassed = currentTick - lastTick;
 			if (ticksPassed < 60) {

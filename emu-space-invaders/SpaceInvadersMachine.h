@@ -23,7 +23,7 @@ public:
 	SpaceInvadersMachine();
 	~SpaceInvadersMachine();
 
-	bool TicksPassed(uint32 currentTicks);
+	void TicksPassed(uint32 currentTicks);
 	void KeyChanged(MachineKey key, bool isPressed);
 
 	uint8 *Framebuffer();
